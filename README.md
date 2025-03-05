@@ -2,6 +2,8 @@
  
 This folder covers scripts created to send K1 tax documents to limited partners for Laconia Capital Group.
 
+[Here's a video overview on how it works](https://www.loom.com/share/bad8633bf10c4b1f842de6d666a7dd6f).
+
 ## k1script.js
 
 1. Put the unencrypted K1s in a folder in the `/docs` folder, which is ignored by git, so all the K1s are not synched to Github.
