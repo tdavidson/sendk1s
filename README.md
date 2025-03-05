@@ -4,6 +4,25 @@ This folder covers scripts created to send K1 tax documents to limited partners 
 
 [Here's a video overview on how it works](https://www.loom.com/share/bad8633bf10c4b1f842de6d666a7dd6f).
 
+Installation:
+- npm install to install the dependencies and node
+- install pdftk-java (use homebrew on a mac)
+- if you have to install homebrew to install pdftk-java:
+
+```
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+then add brew to the path
+```
+echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+eval "$(/opt/homebrew/bin/brew shellenv)"
+```
+then install pdftk-java
+```
+brew install pdftk-java
+```
+
+
 ## k1script.js
 
 1. Put the unencrypted K1s in a folder in the `/docs` folder, which is ignored by git, so all the K1s are not synched to Github.
@@ -18,9 +37,9 @@ node k1script.js [name of folder]
 
 ## send_k1s.js
 
-This script is used to send the K1s to the limited partners, using the finance@ email address. There are two versions of the script, one for Gmail and one for SendGrid, both work.
+This script is used to send the K1s to the limited partners, using the finance@ email address.
 
-> The gmail version requires a credentials.json file from Google Cloud Console. The sendgrid verion requires a sendgrid api key. Both of these are setup using the finance@ email address. Sendgrid is easy to use but domain authentication is required to remove the spoof warning that many email providers will show. Gmail is nice because it sends the emails from the sent items folder so it's in the inbox and easy to find.
+> There are two versions of the script, one for Gmail and one for SendGrid, both have been tested and work. The gmail version requires a credentials.json file from Google Cloud Console. The sendgrid verion requires a sendgrid api key. Both of these are setup using the finance@ email address. Sendgrid is easy to use but domain authentication is required to remove the spoof warning that many email providers will show. Gmail is nice because it sends the emails from the sent items folder so it's in the inbox and easy to find. Gmail was used to distribute the 2024 K1s.
 
 The script requires three files, which you can put in any organizational system you want. 
 
@@ -54,24 +73,25 @@ Important notes:
   - Create a spreadsheet with two columns
   - Label column A as "identifier" and column B as "email"
 - For CSV files with values containing commas, you need to enclose those values in quotes. Key points:
-1. Enclose the identifier in double quotes when it contains a comma. 2. The email field doesn't need quotes unless it contains commas (semicolons are fine without quotes)
-3. If a field contains both commas and quotes, use double quotes and escape internal quotes by doubling them:
+  - Enclose the identifier in double quotes when it contains a comma.
+  - The email field doesn't need quotes unless it contains commas (semicolons are fine without quotes)
+  - If a field contains both commas and quotes, use double quotes and escape internal quotes by doubling them:
 
 ```
-node send_k1s_gmail.js [path to pdf folder] [path to csv/name of email list csv file] [path to email template/name of email template]
+node send_k1s_gmail.js [path to pdf folder_protected] [path to csv/name of email list csv file] [path to email template/name of email template]
 ```
 
-## Notes on authorization
+## Notes on authorization for sending emails
 
 ### Gmail
-If you ever need to force a new authorization (for example, if you want to use a different Google account or if the token expires), you can simply delete the token.json file and run the script again. The script will then prompt you to go through the authorization flow again.
+To send the email, you will have to go to Google Cloud Console and download the credentials file, and rename it to `credentials.json`. The first time you run the script, it will take you to a Google Cloud website to authorize the app, which will generate the `token.json` file. You will not have to authorize the app again. If you ever need to force a new authorization (for example, if you want to use a different Google account or if the token expires), you can simply delete the token.json file and run the `send_k1s_gmail.js` script again. The script will then prompt you to go through the authorization flow again. 
 
 ### Sendgrid
 To remove the spoof warning and improve deliverability, you'll need to authenticate your domain with SendGrid. Here's how:
 
 Go to SendGrid Settings → Sender Authentication
 Click "Authenticate Your Domain"
-Enter your domain (laconiacapitalgroup.com)
+Enter your domain
 You'll get DNS records to add to your domain:
 CNAME records for domain authentication
 DKIM records for email signing
