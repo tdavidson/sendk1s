@@ -1,8 +1,10 @@
 # k1distribution
  
-This folder covers a script created to send K1 tax documents to limited partners for Laconia Capital Group.
+This folder covers scripts created to send K1 tax documents to limited partners for Laconia Capital Group.
 
-1. Put the unencrypted K1s in a folder in the `/docs` folder, which is ignored by git.
+## k1script.js
+
+1. Put the unencrypted K1s in a folder in the `/docs` folder, which is ignored by git, so all the K1s are not synched to Github.
 2. Run the script, passing in the name of the folder to process.
 
 ```
@@ -11,3 +13,71 @@ node k1script.js [name of folder]
 
 3. The encrypted folders will be created in the `/docs` folder with the same folder name, with `_protected` appended.
 4. The script will create a CSV file in the `/docs` folder, with the same name as the folder, but with a `_passwords` suffix. You can use this to verify the passwords are correct and the script worked correctly. Please note this should stay in the `/docs` folder so it is ignored by git.
+
+## send_k1s.js
+
+This script is used to send the K1s to the limited partners, using the finance@ email address. There are two versions of the script, one for Gmail and one for SendGrid, both work.
+
+> The gmail version requires a credentials.json file from Google Cloud Console. The sendgrid verion requires a sendgrid api key. Both of these are setup using the finance@ email address. Sendgrid is easy to use but domain authentication is required to remove the spoof warning that many email providers will show. Gmail is nice because it sends the emails from the sent items folder so it's in the inbox and easy to find.
+
+The script requires three files, which you can put in any organizational system you want. 
+
+- Email template with subject and body of the email
+- K1s to send, in PDF format
+- CSV file with the LP names and email addresses for distribution
+
+The key is to keep any confidential documents in the `/ignore` folder (originally, the `docs` folder) so that they are ignored by git.
+
+1. Create the email template.txt file with the subject line and body of the email.
+2. Create a .csv file with the LP names and email addresses for distribution. This file needs to contain two columns: identifier and email.
+
+```
+identifier,email
+LP001,john.doe@example.com
+LP002,jane.smith@example.com
+ACME_LLC,contact@acme.com
+LP001,john.doe@example.com;jane.doe@example.com
+LP002,jane.smith@example.com;accounting@smith.com
+ACME_LLC,contact@acme.com;finance@acme.com;tax@acme.com
+```
+
+Important notes:
+- The identifier should exactly match part of the K-1 PDF filename for that LP
+- Make sure there are no spaces after the commas
+- The header row (identifier,email) is required
+- Each LP should be on a new line
+- Use semicolons (;) to separate multiple email addresses. You can add as many email addresses as needed for each LP.
+- You can create this file using any text editor or spreadsheet software (just export as CSV)
+- If you're using Excel or Google Sheets:
+  - Create a spreadsheet with two columns
+  - Label column A as "identifier" and column B as "email"
+- For CSV files with values containing commas, you need to enclose those values in quotes. Key points:
+1. Enclose the identifier in double quotes when it contains a comma. 2. The email field doesn't need quotes unless it contains commas (semicolons are fine without quotes)
+3. If a field contains both commas and quotes, use double quotes and escape internal quotes by doubling them:
+
+```
+node send_k1s_gmail.js [path to pdf folder] [path to csv/name of email list csv file] [path to email template/name of email template]
+```
+
+## Notes on authorization
+
+### Gmail
+If you ever need to force a new authorization (for example, if you want to use a different Google account or if the token expires), you can simply delete the token.json file and run the script again. The script will then prompt you to go through the authorization flow again.
+
+### Sendgrid
+To remove the spoof warning and improve deliverability, you'll need to authenticate your domain with SendGrid. Here's how:
+
+Go to SendGrid Settings → Sender Authentication
+Click "Authenticate Your Domain"
+Enter your domain (laconiacapitalgroup.com)
+You'll get DNS records to add to your domain:
+CNAME records for domain authentication
+DKIM records for email signing
+A custom return-path record
+Add these records to your DNS settings (through your domain provider or DNS manager)
+Wait for SendGrid to verify the records (can take up to 48 hours, but usually much faster)
+After domain authentication is complete:
+No more spoof warnings
+Better inbox placement
+Higher deliverability rates
+Protection against email spoofing

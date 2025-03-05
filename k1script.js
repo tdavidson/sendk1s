@@ -4,7 +4,7 @@ const PDFtk = require('node-pdftk');
 const pdfParse = require('pdf-parse');
 
 // Get input folder from command line argument, or use default
-const INPUT_FOLDER = process.argv[2] || path.join(__dirname, '..', 'docs', 'original');
+const INPUT_FOLDER = process.argv[2] || path.join(__dirname, 'ignore', 'original');
 const OUTPUT_FOLDER = `${INPUT_FOLDER}_protected`;
 
 // Ensure input folder exists
@@ -177,7 +177,7 @@ async function processK1PDFs() {
 
     // Save password records
     const folderName = path.basename(INPUT_FOLDER);
-    const csvPath = path.join(__dirname, '..', 'docs', `k1_passwords_${folderName}.csv`);
+    const csvPath = path.join(__dirname, 'ignore', `k1_passwords_${folderName}.csv`);
     fs.writeFileSync(csvPath, 
         'filename,password\n' + 
         passwordData.map(entry => `${entry.filename},${entry.password}`).join('\n')

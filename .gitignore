@@ -8,6 +8,11 @@ package-lock.json
 
 # Docs folder
 docs/
+ignore/
+
+# Google API credentials
+credentials.json
+token.json
 
 # Environment variables
 .env

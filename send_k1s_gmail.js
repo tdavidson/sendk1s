@@ -1,35 +1,75 @@
+require('dotenv').config();
 const fs = require('fs-extra');
 const path = require('path');
 const { parse } = require('csv-parse/sync');
 const { google } = require('googleapis');
+const { OAuth2Client } = require('google-auth-library');
 
 // Configuration
-const PDF_FOLDER = process.argv[2] ? `${process.argv[2]}_protected` : path.join(__dirname, '..', 'original_protected');
+const PDF_FOLDER = process.argv[2];
 const LP_CSV_PATH = process.argv[3] || path.join(__dirname, 'lp_list.csv');
-const PASSWORD_CSV_PATH = path.join(__dirname, 'k1_passwords.csv');
+const EMAIL_TEMPLATE_PATH = process.argv[4] || path.join(__dirname, 'email_template.txt');
 const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
 const TOKEN_PATH = path.join(__dirname, 'token.json');
 
 // Gmail API configuration
 const SCOPES = ['https://www.googleapis.com/auth/gmail.send'];
 const FROM_EMAIL = 'finance@laconiacapitalgroup.com';
-const FROM_NAME = 'Laconia Ocrolus SPV II L.P.';
+const FROM_NAME = 'Laconia Capital Group';
 
 // Load and parse email template
-const emailFile = fs.readFileSync(path.join(__dirname, 'email_template.txt'), 'utf8');
-const [subjectLine, ...bodyLines] = emailFile.split('\n');
-const EMAIL_SUBJECT = subjectLine.replace('SUBJECT:', '').trim();
-const EMAIL_TEMPLATE = bodyLines.join('\n').trim();
+let EMAIL_SUBJECT, EMAIL_TEMPLATE;
+try {
+    const emailFile = fs.readFileSync(EMAIL_TEMPLATE_PATH, 'utf8');
+    const [subjectLine, ...bodyLines] = emailFile.split('\n');
+    EMAIL_SUBJECT = subjectLine.replace('SUBJECT:', '').trim();
+    EMAIL_TEMPLATE = bodyLines.join('\n').trim();
+} catch (error) {
+    console.error(`Error loading email template from ${EMAIL_TEMPLATE_PATH}:`, error.message);
+    process.exit(1);
+}
 
 async function authorize() {
     try {
-        const auth = new google.auth.GoogleAuth({
-            keyFile: CREDENTIALS_PATH,
-            scopes: SCOPES,
+        const content = await fs.readFile(CREDENTIALS_PATH);
+        const { client_secret, client_id, redirect_uris } = JSON.parse(content).installed;
+        const oAuth2Client = new OAuth2Client(client_id, client_secret, redirect_uris[0]);
+
+        // Check if we have previously stored a token
+        if (await fs.pathExists(TOKEN_PATH)) {
+            const token = JSON.parse(await fs.readFile(TOKEN_PATH));
+            oAuth2Client.setCredentials(token);
+            return oAuth2Client;
+        }
+
+        // Get new token
+        const authUrl = oAuth2Client.generateAuthUrl({
+            access_type: 'offline',
+            scope: SCOPES,
         });
-        return auth.getClient();
+        console.log('Authorize this app by visiting this url:', authUrl);
+        
+        const code = await new Promise((resolve) => {
+            const readline = require('readline').createInterface({
+                input: process.stdin,
+                output: process.stdout,
+            });
+            readline.question('Enter the code from that page here: ', (code) => {
+                readline.close();
+                resolve(code);
+            });
+        });
+
+        const { tokens } = await oAuth2Client.getToken(code);
+        oAuth2Client.setCredentials(tokens);
+        
+        // Store the token
+        await fs.writeFile(TOKEN_PATH, JSON.stringify(tokens));
+        console.log('Token stored to', TOKEN_PATH);
+        
+        return oAuth2Client;
     } catch (error) {
-        console.error('Error authorizing Gmail:', error.message);
+        console.error('Error during authorization:', error);
         throw error;
     }
 }
@@ -51,9 +91,11 @@ async function sendEmail(auth, recipients, pdfPath, pdfFilename) {
             `Subject: ${EMAIL_SUBJECT}`,
             '',
             '--boundary',
-            'Content-Type: text/plain; charset="UTF-8"',
+            'Content-Type: text/html; charset="UTF-8"',
             '',
-            EMAIL_TEMPLATE,
+            `<div style="font-family: Arial, sans-serif;">
+                ${EMAIL_TEMPLATE.split('\n\n').map(p => `<p>${p}</p>`).join('')}
+            </div>`,
             '',
             '--boundary',
             'Content-Type: application/pdf',
@@ -90,16 +132,11 @@ async function loadCSVData() {
         const lpDataRaw = await fs.readFile(LP_CSV_PATH);
         const lpData = parse(lpDataRaw, {
             columns: true,
-            skip_empty_lines: true
+            skip_empty_lines: true,
+            bom: true
         });
 
-        const passwordDataRaw = await fs.readFile(PASSWORD_CSV_PATH);
-        const passwordData = parse(passwordDataRaw, {
-            columns: true,
-            skip_empty_lines: true
-        });
-
-        return { lpData, passwordData };
+        return { lpData };
     } catch (error) {
         console.error('Error loading CSV data:', error.message);
         throw error;
@@ -117,39 +154,31 @@ async function main() {
             console.error(`LP CSV file not found: ${LP_CSV_PATH}`);
             process.exit(1);
         }
-        if (!await fs.pathExists(PASSWORD_CSV_PATH)) {
-            console.error(`Password CSV file not found: ${PASSWORD_CSV_PATH}`);
-            process.exit(1);
-        }
         if (!await fs.pathExists(CREDENTIALS_PATH)) {
             console.error('Gmail API credentials not found. Please download credentials.json from Google Cloud Console');
             process.exit(1);
         }
 
         const auth = await authorize();
-        const { lpData, passwordData } = await loadCSVData();
+        const { lpData } = await loadCSVData();
         console.log(`Found ${lpData.length} LPs to process`);
 
         let successCount = 0;
         let failureCount = 0;
 
         for (const lp of lpData) {
-            const pdfFile = passwordData.find(p => p.filename.includes(lp.identifier));
+            // Look for PDF files that contain the LP's identifier
+            const files = await fs.readdir(PDF_FOLDER);
+            const pdfFile = files.find(file => file.includes(lp.identifier));
             
             if (pdfFile) {
-                const pdfPath = path.join(PDF_FOLDER, pdfFile.filename);
+                const pdfPath = path.join(PDF_FOLDER, pdfFile);
+                console.log(`Sending K-1 to ${lp.email}`);
+                const success = await sendEmail(auth, lp.email, pdfPath, pdfFile);
                 
-                if (await fs.pathExists(pdfPath)) {
-                    console.log(`Sending K-1 to ${lp.email}`);
-                    const success = await sendEmail(auth, lp.email, pdfPath, pdfFile.filename);
-                    
-                    if (success) {
-                        successCount++;
-                    } else {
-                        failureCount++;
-                    }
+                if (success) {
+                    successCount++;
                 } else {
-                    console.error(`PDF not found: ${pdfPath}`);
                     failureCount++;
                 }
             } else {
@@ -170,20 +199,16 @@ async function main() {
 // Add usage information
 if (process.argv[2] === '--help' || process.argv[2] === '-h') {
     console.log(`
-Usage: node send_k1s.js [pdf_folder_path] [lp_csv_path]
+Usage: node send_k1s_gmail.js [pdf_folder_path] [lp_csv_path] [email_template_path]
 
 Required files:
 - credentials.json from Google Cloud Console
 - LP CSV file with columns: identifier,email
-- k1_passwords.csv (generated by k1script.js)
-- Protected PDFs in [pdf_folder_path]_protected
+- PDFs in pdf_folder_path
+- Email template file (defaults to email_template.txt)
 
-Setup steps:
-1. Go to Google Cloud Console
-2. Create a project
-3. Enable Gmail API
-4. Create OAuth 2.0 credentials
-5. Download credentials.json to script directory
+Example:
+node send_k1s_gmail.js docs/K1_folder lp_list.csv templates/k1_email.txt
     `);
     process.exit(0);
 }
