@@ -4,10 +4,12 @@ This folder covers scripts created to send K1 tax documents to limited partners 
 
 [Here's a video overview on how it works](https://www.loom.com/share/bad8633bf10c4b1f842de6d666a7dd6f).
 
-Installation:
-- npm install to install the dependencies and node
-- install pdftk-java (use homebrew on a mac)
-- if you have to install homebrew to install pdftk-java:
+## Installation:
+
+- `npm install` to install the dependencies and node
+- `brew install pdftk-java` (use homebrew on a mac)
+
+if you have to install homebrew to install pdftk-java:
 
 ```
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -21,7 +23,9 @@ then install pdftk-java
 ```
 brew install pdftk-java
 ```
+## test_k1s.js
 
+This is a test script that will test the matching of the PDF files to the email CSV file. It will not send any emails, but instead create a CSV file with the results of what each file was matched to. Run this before sending any emails.
 
 ## k1script.js
 
@@ -55,15 +59,13 @@ The key is to keep any confidential documents in the `/ignore` folder (originall
 ```
 identifier,email
 LP001,john.doe@example.com
-LP002,jane.smith@example.com
 ACME_LLC,contact@acme.com
 LP001,john.doe@example.com;jane.doe@example.com
-LP002,jane.smith@example.com;accounting@smith.com
-ACME_LLC,contact@acme.com;finance@acme.com;tax@acme.com
+"ACME LLC",contact@acme.com;finance@acme.com;tax@acme.com
 ```
 
 Important notes:
-- The identifier should exactly match part of the K-1 PDF filename for that LP
+- The identifier should exactly match part (any part)of the K-1 PDF filename for that LP
 - Make sure there are no spaces after the commas
 - The header row (identifier,email) is required
 - Each LP should be on a new line
@@ -89,13 +91,13 @@ To send the email, you will have to go to Google Cloud Console and download the 
 ### Sendgrid
 To remove the spoof warning and improve deliverability, you'll need to authenticate your domain with SendGrid. Here's how:
 
-Go to SendGrid Settings → Sender Authentication
-Click "Authenticate Your Domain"
-Enter your domain
-You'll get DNS records to add to your domain:
-CNAME records for domain authentication
-DKIM records for email signing
-A custom return-path record
+- Go to SendGrid Settings → Sender Authentication
+- Click "Authenticate Your Domain"
+- Enter your domain
+- You'll get DNS records to add to your domain:
+  - CNAME records for domain authentication
+  - DKIM records for email signing
+  - A custom return-path record
 Add these records to your DNS settings (through your domain provider or DNS manager)
 Wait for SendGrid to verify the records (can take up to 48 hours, but usually much faster)
 After domain authentication is complete:
