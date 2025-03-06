@@ -98,10 +98,10 @@ To remove the spoof warning and improve deliverability, you'll need to authentic
   - CNAME records for domain authentication
   - DKIM records for email signing
   - A custom return-path record
-Add these records to your DNS settings (through your domain provider or DNS manager)
-Wait for SendGrid to verify the records (can take up to 48 hours, but usually much faster)
-After domain authentication is complete:
-No more spoof warnings
-Better inbox placement
-Higher deliverability rates
-Protection against email spoofing
+- Add these records to your DNS settings (through your domain provider or DNS manager)
+- Wait for SendGrid to verify the records (can take up to 48 hours, but usually much faster)
+- After domain authentication is complete:
+  - No more spoof warnings
+  - Better inbox placement
+  - Higher deliverability rates
+  - Protection against email spoofing
