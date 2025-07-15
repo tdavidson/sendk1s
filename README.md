@@ -33,7 +33,7 @@ This is a test script that will test the matching of the PDF files to the email 
 2. Run the script, passing in the name of the folder to process.
 
 ```
-node k1script.js [name of folder]
+node k1script.js [name of folder with full file path, including the "ignore" folder, excluding the leading "/" from the file path]
 ```
 
 3. The encrypted folders will be created in the `ignore` folder with the same folder name, with `_protected` appended.
