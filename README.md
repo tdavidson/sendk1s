@@ -1,6 +1,8 @@
-# k1distribution
+# Prepare and Send K1s
 
 Scripts to redact, encrypt, and send K-1 tax documents to limited partners. For fund managers and tax preparers.
+
+This was created by Taylor Davidson of [Hemrock](https://www.hemrock.com). Questions, ask anytime.
 
 ## Setup
 
@@ -198,6 +200,10 @@ node send_k1s_sendgrid.js <pdf_folder> [lp_csv] [email_template]
 ```
 
 Requires `SENDGRID_API_KEY` in `.env`. Authenticate your domain in SendGrid to avoid spoof warnings.
+
+### Extensions
+
+This can be edited to use Resend or other email providers.
 
 ---
 

@@ -2,7 +2,7 @@
  * Test send: picks ONE LP from the list and sends that LP's K-1 to a test address
  * (e.g. finance@) so you can review the email before sending to everyone.
  *
- * Set TEST_SEND_EMAIL in .env (e.g. TEST_SEND_EMAIL=finance@laconiacapitalgroup.com).
+ * Set TEST_SEND_EMAIL in .env (e.g. TEST_SEND_EMAIL=finance@example.com).
  *
  * Usage: node send_k1s_gmail_test.js [pdf_folder] [lp_csv] [email_template] [lp_index_or_identifier]
  *   lp_index_or_identifier: optional. 1-based index (e.g. 1 = first LP) or part of identifier. Default: 1
