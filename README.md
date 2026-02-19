@@ -70,6 +70,7 @@ Open http://localhost:3000 (or the next available port if 3000 is in use).
 **How it works:**
 
 - **Prepare** — Choose redact only, encrypt only, or both. Select the folder containing your original PDFs (e.g. `ignore/2025_fund/original`). The UI runs the same scripts as the CLI.
+- **Gmail authorization** — If you have `credentials.json` but no `token.json`, the UI shows an authorization section. Click "Authorize Gmail", sign in with Google — you're redirected back automatically. Add the shown redirect URI to your Google Cloud Console OAuth client if needed.
 - **Test matching** — Select the `_protected` or `_redacted_protected` PDF folder and LP CSV to verify each LP has exactly one matching PDF.
 - **Test send** — Send one LP's K-1 to a test address. Set the test email in the UI (or it uses `TEST_SEND_EMAIL` from `.env`). Pick which LP by row number.
 - **Full send** — Send all K-1s via Gmail. Requires confirmation before sending.
@@ -179,9 +180,11 @@ node send_k1s_gmail.js <pdf_folder> [lp_csv] [email_template]
 
 **Setup:**
 
-1. Google Cloud Console: create OAuth credentials, download as `credentials.json`
-2. Place `credentials.json` in the project root (gitignored)
-3. First run: authorize in browser, paste code; creates `token.json` in project root
+1. Google Cloud Console: create OAuth credentials (type "Web application"), download as `credentials.json`
+2. Add the redirect URI to your OAuth client: `http://localhost:3000/auth/gmail/callback` (and `:3001`, `:3002` if the UI uses those ports — the UI shows the exact URI to add)
+3. Place `credentials.json` in the project root (gitignored)
+4. **Web UI:** Start the UI (`npm run ui`), click "Authorize Gmail", sign in with Google — you'll be redirected back automatically. No copy-paste.
+5. **CLI:** First run: authorize in browser, paste code in terminal; creates `token.json` in project root
 
 ### Test send (Gmail)
 

@@ -10,6 +10,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const { spawn } = require('child_process');
 const { parse } = require('csv-parse/sync');
+const { OAuth2Client } = require('google-auth-library');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -179,6 +180,112 @@ app.post('/api/test-match', async (req, res) => {
 // Get TEST_SEND_EMAIL from .env (for UI pre-fill)
 app.get('/api/test-send-email', (req, res) => {
   res.json({ email: process.env.TEST_SEND_EMAIL || '' });
+});
+
+// Gmail OAuth: check if token exists
+const CREDENTIALS_PATH = process.env.CREDENTIALS_PATH
+  ? path.resolve(SCRIPT_DIR, process.env.CREDENTIALS_PATH)
+  : path.join(SCRIPT_DIR, 'credentials.json');
+const TOKEN_PATH = process.env.TOKEN_PATH
+  ? path.resolve(SCRIPT_DIR, process.env.TOKEN_PATH)
+  : path.join(SCRIPT_DIR, 'token.json');
+const GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.send'];
+
+app.get('/api/gmail-auth-status', async (req, res) => {
+  try {
+    const hasCredentials = await fs.pathExists(CREDENTIALS_PATH);
+    const hasToken = await fs.pathExists(TOKEN_PATH);
+    res.json({ hasCredentials, hasToken, authorized: hasCredentials && hasToken });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Build redirect URI for OAuth callback (must be added to Google Cloud Console)
+function getRedirectUri(req) {
+  const host = req.get('host') || `localhost:${PORT}`;
+  const protocol = req.get('x-forwarded-proto') || (req.connection?.encrypted ? 'https' : 'http');
+  return `${protocol}://${host}/auth/gmail/callback`;
+}
+
+// Gmail OAuth: get auth URL — uses redirect flow so Google sends user back with code
+app.get('/api/gmail-auth-url', async (req, res) => {
+  try {
+    if (!await fs.pathExists(CREDENTIALS_PATH)) {
+      return res.status(400).json({ error: 'credentials.json not found. Place it in the project root.' });
+    }
+    const content = await fs.readFile(CREDENTIALS_PATH);
+    const parsed = JSON.parse(content);
+    const creds = parsed.installed || parsed.web;
+    const { client_secret, client_id } = creds;
+    const redirectUri = getRedirectUri(req);
+    const oAuth2Client = new OAuth2Client(client_id, client_secret, redirectUri);
+    const authUrl = oAuth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: GMAIL_SCOPES,
+      prompt: 'consent',
+    });
+    res.json({ authUrl, redirectUri });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Gmail OAuth: callback — Google redirects here with code; we capture it and complete auth
+app.get('/auth/gmail/callback', async (req, res) => {
+  const { code, error } = req.query;
+  if (error) {
+    return res.redirect(`/?gmail_error=${encodeURIComponent(error)}`);
+  }
+  if (!code) {
+    return res.redirect('/?gmail_error=' + encodeURIComponent('No code received'));
+  }
+  try {
+    if (!await fs.pathExists(CREDENTIALS_PATH)) {
+      return res.redirect('/?gmail_error=' + encodeURIComponent('credentials.json not found'));
+    }
+    const content = await fs.readFile(CREDENTIALS_PATH);
+    const parsed = JSON.parse(content);
+    const creds = parsed.installed || parsed.web;
+    const { client_secret, client_id } = creds;
+    const redirectUri = getRedirectUri(req);
+    const oAuth2Client = new OAuth2Client(client_id, client_secret, redirectUri);
+    const { tokens } = await oAuth2Client.getToken(code);
+    await fs.writeFile(TOKEN_PATH, JSON.stringify(tokens));
+    res.redirect('/?gmail=authorized');
+  } catch (err) {
+    const msg = err.response?.data?.error === 'invalid_grant'
+      ? 'Redirect URI mismatch. Add this to Google Cloud Console: ' + getRedirectUri(req)
+      : err.message;
+    res.redirect('/?gmail_error=' + encodeURIComponent(msg));
+  }
+});
+
+// Gmail OAuth: exchange code for token (fallback for paste flow if redirect fails)
+app.post('/api/gmail-auth-code', async (req, res) => {
+  const { code } = req.body;
+  if (!code || typeof code !== 'string' || !code.trim()) {
+    return res.status(400).json({ error: 'Code is required' });
+  }
+  try {
+    if (!await fs.pathExists(CREDENTIALS_PATH)) {
+      return res.status(400).json({ error: 'credentials.json not found.' });
+    }
+    const content = await fs.readFile(CREDENTIALS_PATH);
+    const parsed = JSON.parse(content);
+    const creds = parsed.installed || parsed.web;
+    const { client_secret, client_id } = creds;
+    const redirectUri = 'urn:ietf:wg:oauth:2.0:oob'; // paste flow
+    const oAuth2Client = new OAuth2Client(client_id, client_secret, redirectUri);
+    const { tokens } = await oAuth2Client.getToken(code.trim());
+    await fs.writeFile(TOKEN_PATH, JSON.stringify(tokens));
+    res.json({ success: true, message: 'Gmail authorized. You can now send and test send.' });
+  } catch (err) {
+    const msg = err.response?.data?.error === 'invalid_grant'
+      ? 'Invalid or expired code. Copy the full code from the browser and try again.'
+      : err.message;
+    res.status(400).json({ error: msg });
+  }
 });
 
 // Test send (one LP to TEST_SEND_EMAIL)
