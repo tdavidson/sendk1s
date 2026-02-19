@@ -9,6 +9,7 @@
  *   or a folder named <input_folder>_redacted if input is a folder.
  */
 
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
@@ -25,7 +26,7 @@ const PADDING = 1; // extra points around redaction box
 const UPWARD_EXTRA = 1; // extend box upward so rect covers text (PDF.js y is baseline)
 
 // Courier (CourierPrime-Regular.ttf) matches K-1 filled fields. Embedded for consistent display.
-const COURIER_FONT_PATH = path.join(__dirname, 'fonts', 'CourierPrime-Regular.ttf');
+const COURIER_FONT_PATH = process.env.FONT_PATH || path.join(__dirname, 'fonts', 'CourierPrime-Regular.ttf');
 
 function findAllIdMatches(text) {
     const matches = [];

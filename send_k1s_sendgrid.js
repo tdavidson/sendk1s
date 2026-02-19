@@ -9,8 +9,8 @@ const PDF_FOLDER = process.argv[2];
 const LP_CSV_PATH = process.argv[3] || path.join(__dirname, 'lp_list.csv');
 const EMAIL_TEMPLATE_PATH = process.argv[4] || path.join(__dirname, 'email_template.txt');
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-const FROM_EMAIL = 'finance@laconiacapitalgroup.com';
-const FROM_NAME = 'Laconia Capital Group';
+const FROM_EMAIL = process.env.FROM_EMAIL || '';
+const FROM_NAME = process.env.FROM_NAME || '';
 
 // Load and parse email template (validated in main)
 let EMAIL_SUBJECT, EMAIL_TEMPLATE;
@@ -80,7 +80,11 @@ async function main() {
     try {
         // Validate configuration
         if (!SENDGRID_API_KEY) {
-            console.error('SendGrid API key not found. Please set SENDGRID_API_KEY environment variable.');
+            console.error('SendGrid API key not found. Please set SENDGRID_API_KEY in your .env file.');
+            process.exit(1);
+        }
+        if (!FROM_EMAIL || !FROM_NAME) {
+            console.error('FROM_EMAIL and FROM_NAME must be set. Copy .env.example to .env and configure your sender details.');
             process.exit(1);
         }
 
@@ -149,7 +153,7 @@ Required:
 - email_template_path (optional): defaults to email_template.txt in project root
 
 Example:
-node send_k1s_sendgrid.js ignore/2025_k1_ocrolus_protected 2025_k1_spv1/spv1_lps.csv 2025_k1_spv1/spv2_email.txt
+node send_k1s_sendgrid.js ignore/2025_fund_protected ignore/2025_fund/lps.csv ignore/2025_fund/email.txt
 
 Setup steps:
 1. Sign up for SendGrid

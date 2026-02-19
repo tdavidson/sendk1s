@@ -9,6 +9,7 @@ package-lock.json
 # Docs folder
 docs/
 ignore/
+not_tracked_by_github/
 
 # Google API credentials
 credentials.json

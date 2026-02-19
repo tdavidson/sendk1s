@@ -1,12 +1,15 @@
 {
   "name": "k1distribution",
   "version": "1.0.0",
-  "description": "K-1 distribution and email scripts for Laconia Capital Group (encrypt PDFs, test matching, send via Gmail or SendGrid).",
+  "description": "K-1 distribution and email scripts for fund managers (redact, encrypt PDFs, test matching, send via Gmail or SendGrid).",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "encrypt": "node k1script.js",
     "redact": "node redact_k1.js",
+    "prepare-k1s": "node prepare_k1s.js",
+    "prepare-k1s-redact": "node prepare_k1s.js --redact-only",
+    "prepare-k1s-encrypt": "node prepare_k1s.js --encrypt-only",
     "test-match": "node test_k1s.js",
     "send-gmail": "node send_k1s_gmail.js",
     "send-gmail-test": "node send_k1s_gmail_test.js",

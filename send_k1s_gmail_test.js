@@ -19,13 +19,17 @@ const PDF_FOLDER = process.argv[2];
 const LP_CSV_PATH = process.argv[3] || path.join(__dirname, 'lp_list.csv');
 const EMAIL_TEMPLATE_PATH = process.argv[4] || path.join(__dirname, 'email_template.txt');
 const LP_PICK = process.argv[5] || '1';
-const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
-const TOKEN_PATH = path.join(__dirname, 'token.json');
+const CREDENTIALS_PATH = process.env.CREDENTIALS_PATH
+    ? path.resolve(__dirname, process.env.CREDENTIALS_PATH)
+    : path.join(__dirname, 'credentials.json');
+const TOKEN_PATH = process.env.TOKEN_PATH
+    ? path.resolve(__dirname, process.env.TOKEN_PATH)
+    : path.join(__dirname, 'token.json');
 const TEST_SEND_EMAIL = process.env.TEST_SEND_EMAIL;
 
 const SCOPES = ['https://www.googleapis.com/auth/gmail.send'];
-const FROM_EMAIL = 'finance@laconiacapitalgroup.com';
-const FROM_NAME = 'Laconia Capital Group';
+const FROM_EMAIL = process.env.FROM_EMAIL || '';
+const FROM_NAME = process.env.FROM_NAME || '';
 
 let EMAIL_SUBJECT, EMAIL_TEMPLATE;
 try {
@@ -134,11 +138,11 @@ Usage: node send_k1s_gmail_test.js [pdf_folder] [lp_csv] [email_template] [lp_pi
   email_template   Template file (default: email_template.txt)
   lp_pick          Which LP: number 1-N or part of identifier (default: 1)
 
-  Set in .env: TEST_SEND_EMAIL=finance@laconiacapitalgroup.com
+  Set in .env: TEST_SEND_EMAIL=your@email.com
 
 Example:
-  node send_k1s_gmail_test.js ignore/2025_k1_ocrolus_protected 2025_k1_spv1/spv1_lps.csv 2025_k1_spv1/spv1_email.txt 1
-  node send_k1s_gmail_test.js ignore/2025_k1_ocrolus_protected 2025_k1_spv1/spv1_lps.csv 2025_k1_spv1/spv1_email.txt "SEGAL"
+  node send_k1s_gmail_test.js ignore/2025_fund_protected ignore/2025_fund/lps.csv ignore/2025_fund/email.txt 1
+  node send_k1s_gmail_test.js ignore/2025_fund_protected ignore/2025_fund/lps.csv ignore/2025_fund/email.txt "LP001"
 `);
         process.exit(PDF_FOLDER ? 0 : 1);
     }
@@ -155,8 +159,12 @@ Example:
         console.error('credentials.json not found.');
         process.exit(1);
     }
+    if (!FROM_EMAIL || !FROM_NAME) {
+        console.error('FROM_EMAIL and FROM_NAME must be set. Copy .env.example to .env and configure your sender details.');
+        process.exit(1);
+    }
     if (!TEST_SEND_EMAIL || !TEST_SEND_EMAIL.trim()) {
-        console.error('TEST_SEND_EMAIL is not set. Add it to your .env file, e.g.:\n  TEST_SEND_EMAIL=finance@laconiacapitalgroup.com');
+        console.error('TEST_SEND_EMAIL is not set. Add it to your .env file, e.g.:\n  TEST_SEND_EMAIL=finance@example.com');
         process.exit(1);
     }
 

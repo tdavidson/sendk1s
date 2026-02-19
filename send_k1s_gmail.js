@@ -9,13 +9,17 @@ const { OAuth2Client } = require('google-auth-library');
 const PDF_FOLDER = process.argv[2];
 const LP_CSV_PATH = process.argv[3] || path.join(__dirname, 'lp_list.csv');
 const EMAIL_TEMPLATE_PATH = process.argv[4] || path.join(__dirname, 'email_template.txt');
-const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
-const TOKEN_PATH = path.join(__dirname, 'token.json');
+const CREDENTIALS_PATH = process.env.CREDENTIALS_PATH
+    ? path.resolve(__dirname, process.env.CREDENTIALS_PATH)
+    : path.join(__dirname, 'credentials.json');
+const TOKEN_PATH = process.env.TOKEN_PATH
+    ? path.resolve(__dirname, process.env.TOKEN_PATH)
+    : path.join(__dirname, 'token.json');
 
 // Gmail API configuration
 const SCOPES = ['https://www.googleapis.com/auth/gmail.send'];
-const FROM_EMAIL = 'finance@laconiacapitalgroup.com';
-const FROM_NAME = 'Laconia Capital Group';
+const FROM_EMAIL = process.env.FROM_EMAIL || '';
+const FROM_NAME = process.env.FROM_NAME || '';
 
 // Load and parse email template
 let EMAIL_SUBJECT, EMAIL_TEMPLATE;
@@ -163,8 +167,12 @@ async function main() {
             console.error(`LP CSV file not found: ${LP_CSV_PATH}`);
             process.exit(1);
         }
+        if (!FROM_EMAIL || !FROM_NAME) {
+            console.error('FROM_EMAIL and FROM_NAME must be set. Copy .env.example to .env and configure your sender details.');
+            process.exit(1);
+        }
         if (!await fs.pathExists(CREDENTIALS_PATH)) {
-            console.error('Gmail API credentials not found. Please download credentials.json from Google Cloud Console');
+            console.error(`Gmail API credentials not found at ${CREDENTIALS_PATH}. Download credentials.json from Google Cloud Console and place it in the project root (or set CREDENTIALS_PATH).`);
             process.exit(1);
         }
 
@@ -223,7 +231,7 @@ Required files:
 - Email template file (defaults to email_template.txt)
 
 Example:
-node send_k1s_gmail.js ignore/2025_k1_ocrolus_protected 2025_k1_spv1/spv1_lps.csv 2025_k1_spv1/spv2_email.txt
+node send_k1s_gmail.js ignore/2025_fund_protected ignore/2025_fund/lps.csv ignore/2025_fund/email.txt
     `);
     process.exit(0);
 }

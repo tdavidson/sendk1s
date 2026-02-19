@@ -29,7 +29,8 @@ function suppressPdfjsWarnings(fn) {
 }
 
 // Get input folder from command line argument, or use default
-const INPUT_FOLDER = process.argv[2] || path.join(__dirname, 'ignore', 'original');
+const IGNORE_FOLDER = path.resolve(__dirname, process.env.IGNORE_FOLDER || 'ignore');
+const INPUT_FOLDER = process.argv[2] || path.join(IGNORE_FOLDER, 'original');
 const OUTPUT_FOLDER = `${INPUT_FOLDER}_protected`;
 
 // Ensure input folder exists
@@ -277,7 +278,10 @@ async function processK1PDFs() {
 
     // Save password records
     const folderName = path.basename(INPUT_FOLDER);
-    const csvPath = path.join(__dirname, 'ignore', `k1_passwords_${folderName}.csv`);
+    if (!fs.existsSync(IGNORE_FOLDER)) {
+        fs.mkdirSync(IGNORE_FOLDER, { recursive: true });
+    }
+    const csvPath = path.join(IGNORE_FOLDER, `k1_passwords_${folderName}.csv`);
     fs.writeFileSync(csvPath,
         'filename,password\n' +
         passwordData.map(entry => `${entry.filename},${entry.password}`).join('\n')
