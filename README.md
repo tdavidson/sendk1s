@@ -1,8 +1,8 @@
 # Prepare and Send K1s
 
-Scripts to redact, encrypt, and send K-1 tax documents to limited partners. For fund managers and tax preparers.
+This was created by Taylor Davidson of [Hemrock](https://www.hemrock.com). Distributing K1s to investors can be a pain, so let's make it a bit easier. This script can be run through command line or a web interface running locally on your computer - no data is shared outside of your computer - and it take take a folder of PDF K1s, redact EIN/TIN/SSNs if needed, encrypt and password-protect if needed (creating passwords from the last 4 digits of the K1 recipient's SSN/TIN/EIN and their zip code), and use a template email and a CSV of recipient names and email addresses (including support for multiple contacts per LP), send them from your own Gmail (or SendGrid, if desired). 
 
-This was created by Taylor Davidson of [Hemrock](https://www.hemrock.com). Questions, ask anytime.
+Questions, ask anytime.
 
 ## Setup
 
