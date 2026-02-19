@@ -276,12 +276,13 @@ async function processK1PDFs() {
         }
     }
 
-    // Save password records
+    // Save password records in the same folder as the input (e.g. ignore/fund/ not ignore/ root)
     const folderName = path.basename(INPUT_FOLDER);
-    if (!fs.existsSync(IGNORE_FOLDER)) {
-        fs.mkdirSync(IGNORE_FOLDER, { recursive: true });
+    const csvDir = path.dirname(INPUT_FOLDER);
+    if (!fs.existsSync(csvDir)) {
+        fs.mkdirSync(csvDir, { recursive: true });
     }
-    const csvPath = path.join(IGNORE_FOLDER, `k1_passwords_${folderName}.csv`);
+    const csvPath = path.join(csvDir, `k1_passwords_${folderName}.csv`);
     fs.writeFileSync(csvPath,
         'filename,password\n' +
         passwordData.map(entry => `${entry.filename},${entry.password}`).join('\n')

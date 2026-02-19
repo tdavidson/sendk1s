@@ -13,7 +13,8 @@
     "test-match": "node test_k1s.js",
     "send-gmail": "node send_k1s_gmail.js",
     "send-gmail-test": "node send_k1s_gmail_test.js",
-    "send-sendgrid": "node send_k1s_sendgrid.js"
+    "send-sendgrid": "node send_k1s_sendgrid.js",
+    "ui": "node server.js"
   },
   "keywords": [],
   "author": "",
@@ -31,6 +32,7 @@
     "csv-parse": "^5.6.0",
     "csv-stringify": "^6.5.2",
     "dotenv": "^16.4.7",
+    "express": "^4.22.1",
     "fs-extra": "^11.3.0",
     "google-auth-library": "^9.15.1",
     "googleapis": "^146.0.0",

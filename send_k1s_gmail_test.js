@@ -19,13 +19,14 @@ const PDF_FOLDER = process.argv[2];
 const LP_CSV_PATH = process.argv[3] || path.join(__dirname, 'lp_list.csv');
 const EMAIL_TEMPLATE_PATH = process.argv[4] || path.join(__dirname, 'email_template.txt');
 const LP_PICK = process.argv[5] || '1';
+const TEST_SEND_EMAIL_OVERRIDE = process.argv[6]; // Optional: override .env TEST_SEND_EMAIL
 const CREDENTIALS_PATH = process.env.CREDENTIALS_PATH
     ? path.resolve(__dirname, process.env.CREDENTIALS_PATH)
     : path.join(__dirname, 'credentials.json');
 const TOKEN_PATH = process.env.TOKEN_PATH
     ? path.resolve(__dirname, process.env.TOKEN_PATH)
     : path.join(__dirname, 'token.json');
-const TEST_SEND_EMAIL = process.env.TEST_SEND_EMAIL;
+const TEST_SEND_EMAIL = (TEST_SEND_EMAIL_OVERRIDE && TEST_SEND_EMAIL_OVERRIDE.trim()) || process.env.TEST_SEND_EMAIL;
 
 const SCOPES = ['https://www.googleapis.com/auth/gmail.send'];
 const FROM_EMAIL = process.env.FROM_EMAIL || '';
@@ -128,17 +129,17 @@ function pickOneLP(lpData, pick) {
 async function main() {
     if (!PDF_FOLDER || process.argv[2] === '--help' || process.argv[2] === '-h') {
         console.log(`
-Usage: node send_k1s_gmail_test.js [pdf_folder] [lp_csv] [email_template] [lp_pick]
+Usage: node send_k1s_gmail_test.js [pdf_folder] [lp_csv] [email_template] [lp_pick] [test_email]
 
-  Sends ONE LP's K-1 to the test address (TEST_SEND_EMAIL in .env) so you can
-  review before sending to everyone.
+  Sends ONE LP's K-1 to the test address so you can review before sending to everyone.
 
   pdf_folder       Folder containing protected K-1 PDFs
   lp_csv           LP CSV (default: lp_list.csv)
   email_template   Template file (default: email_template.txt)
   lp_pick          Which LP: number 1-N or part of identifier (default: 1)
+  test_email       Optional: override TEST_SEND_EMAIL from .env
 
-  Set in .env: TEST_SEND_EMAIL=your@email.com
+  Set in .env: TEST_SEND_EMAIL=your@email.com (or pass as 6th arg)
 
 Example:
   node send_k1s_gmail_test.js ignore/2025_fund_protected ignore/2025_fund/lps.csv ignore/2025_fund/email.txt 1

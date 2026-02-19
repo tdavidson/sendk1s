@@ -171,6 +171,18 @@ Requires `SENDGRID_API_KEY` in `.env`. Authenticate your domain in SendGrid to a
 
 ---
 
+## Web UI
+
+A minimal web interface runs on localhost for running prepare, test-match, and send operations:
+
+```bash
+npm run ui
+```
+
+Open http://localhost:3000. Select folders, CSV files, and email templates from dropdowns. Test send uses `TEST_SEND_EMAIL` from `.env`.
+
+---
+
 ## npm scripts
 
 | Script | Description |
@@ -184,6 +196,7 @@ Requires `SENDGRID_API_KEY` in `.env`. Authenticate your domain in SendGrid to a
 | `npm run send-gmail -- ...` | Send via Gmail |
 | `npm run send-gmail-test -- ...` | Test send via Gmail |
 | `npm run send-sendgrid -- ...` | Send via SendGrid |
+| `npm run ui` | Start web interface (localhost:3000) |
 
 Pass arguments after `--`.
 

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K-1 Distribution</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'media',
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  </style>
+</head>
+<body class="bg-stone-50 dark:bg-stone-900 text-stone-800 dark:text-stone-200 font-mono text-sm antialiased min-h-screen">
+  <div class="max-w-3xl mx-auto px-6 py-12">
+    <header class="mb-12">
+      <h1 class="text-2xl font-medium tracking-tight text-stone-900 dark:text-stone-100">Prepare and Send K-1s</h1>
+      <p class="mt-1 text-stone-500 dark:text-stone-400">Send K-1 tax documents to partners using Gmail or SendGrid, with optional redaction and password-protected encryption.</p>
+    </header>
+
+    <!-- Explainer (from README) - Accordion -->
+    <details class="mb-12 group" open>
+      <summary class="p-6 border border-stone-200 dark:border-stone-700 rounded-lg group-open:rounded-b-none bg-white dark:bg-stone-800 cursor-pointer list-none flex items-center justify-between hover:bg-stone-50 dark:hover:bg-stone-700/50">
+        <h2 class="text-sm font-medium text-stone-700 dark:text-stone-300 uppercase tracking-wider">Overview</h2>
+        <span class="text-stone-400 dark:text-stone-500 transition-transform duration-200 group-open:rotate-180">▼</span>
+      </summary>
+      <div class="p-6 border border-t-0 border-stone-200 dark:border-stone-700 rounded-b-lg bg-white dark:bg-stone-800 space-y-3 text-stone-600 dark:text-stone-400 leading-relaxed">
+        <p>For fund managers and tax preparers. Typical workflow:</p>
+        <ol class="list-decimal list-inside space-y-2 ml-2">
+          <li><strong>Prepare</strong> K-1 PDFs: redact (optional) and encrypt (optional)</li>
+          <li><strong>Create your email template</strong> Write the default email to send to partners</li>
+          <li><strong>Prepare your email list</strong> Create a CSV file with the email addresses of your partners and contacts</li>
+          <li><strong>Test matching</strong> to verify PDF filenames match your limited partners before sending</li>
+          <li><strong>Send</strong> K-1s via Gmail or SendGrid</li>
+        </ol>
+        <p class="mt-4">Prepare modes:</p>
+        <ul class="list-disc list-inside space-y-1 ml-2">
+          <li><strong>Redact only</strong> — Redacts SSN/TIN on the page</li>
+          <li><strong>Encrypt only</strong> — Encrypts PDFs with password (e.g. after redaction)</li>
+          <li><strong>Both</strong> — Redact, then encrypt</li>
+        </ul>
+        <p class="mt-4">Keep confidential documents in <code class="bg-stone-100 dark:bg-stone-700 px-1.5 py-0.5 rounded">ignore/</code>. Put K-1 PDFs in a subfolder (e.g. <code class="bg-stone-100 dark:bg-stone-700 px-1.5 py-0.5 rounded">ignore/2025_fund_name/original/</code>).</p>
+      </div>
+    </details>
+
+    <!-- Prepare -->
+    <section class="mb-12 p-6 border border-stone-200 dark:border-stone-700 rounded-lg bg-white dark:bg-stone-800">
+      <h2 class="text-sm font-medium text-stone-700 dark:text-stone-300 mb-4 uppercase tracking-wider">1. Prepare K-1s</h2>
+      <ul class="space-y-3 mb-4">
+        <li class="flex items-center gap-2">
+          <input type="radio" name="prepareMode" id="mode-both" value="both" checked class="rounded border-stone-300 dark:border-stone-600 dark:bg-stone-700">
+          <label for="mode-both">Redact + encrypt (both)</label>
+        </li>
+        <li class="flex items-center gap-2">
+          <input type="radio" name="prepareMode" id="mode-redact" value="redact-only" class="rounded border-stone-300 dark:border-stone-600 dark:bg-stone-700">
+          <label for="mode-redact">Redact only</label>
+        </li>
+        <li class="flex items-center gap-2">
+          <input type="radio" name="prepareMode" id="mode-encrypt" value="encrypt-only" class="rounded border-stone-300 dark:border-stone-600 dark:bg-stone-700">
+          <label for="mode-encrypt">Encrypt only</label>
+        </li>
+      </ul>
+      <div class="flex gap-2 mb-4">
+        <select id="prepareFolder" class="flex-1 px-3 py-2 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-200">
+          <option value="">Select folder...</option>
+        </select>
+        <button id="btnPrepare" class="px-4 py-2 bg-stone-800 dark:bg-stone-600 text-white rounded hover:bg-stone-700 dark:hover:bg-stone-500 disabled:opacity-50 disabled:cursor-not-allowed">
+          Run
+        </button>
+      </div>
+      <div id="prepareOutput" class="hidden mt-2 p-3 bg-stone-100 dark:bg-stone-700 rounded text-stone-700 dark:text-stone-300 whitespace-pre-wrap break-words text-xs"></div>
+    </section>
+
+    <!-- Test matching -->
+    <section class="mb-12 p-6 border border-stone-200 dark:border-stone-700 rounded-lg bg-white dark:bg-stone-800">
+      <h2 class="text-sm font-medium text-stone-700 dark:text-stone-300 mb-4 uppercase tracking-wider">2. Test matching</h2>
+      <p class="text-stone-500 dark:text-stone-400 mb-4 text-xs">Verify each LP in your CSV has exactly one matching PDF (use the <code class="bg-stone-100 dark:bg-stone-700 px-1 rounded">_protected</code> or <code class="bg-stone-100 dark:bg-stone-700 px-1 rounded">_redacted_protected</code> folder).</p>
+      <div class="space-y-3 mb-4">
+        <div>
+          <label class="block text-xs text-stone-500 dark:text-stone-400 mb-1">PDF folder</label>
+          <select id="matchPdfFolder" class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-200">
+            <option value="">Select folder...</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-stone-500 dark:text-stone-400 mb-1">LP CSV</label>
+          <select id="matchCsv" class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-200">
+            <option value="">Select CSV...</option>
+          </select>
+        </div>
+      </div>
+      <button id="btnTestMatch" class="px-4 py-2 bg-stone-800 dark:bg-stone-600 text-white rounded hover:bg-stone-700 dark:hover:bg-stone-500 disabled:opacity-50 disabled:cursor-not-allowed">
+        Run test match
+      </button>
+      <div id="matchOutput" class="hidden mt-2 p-3 bg-stone-100 dark:bg-stone-700 rounded text-stone-700 dark:text-stone-300 whitespace-pre-wrap break-words text-xs"></div>
+    </section>
+
+    <!-- Test send -->
+    <section class="mb-12 p-6 border border-stone-200 dark:border-stone-700 rounded-lg bg-white dark:bg-stone-800">
+      <h2 class="text-sm font-medium text-stone-700 dark:text-stone-300 mb-4 uppercase tracking-wider">3. Test send</h2>
+      <p class="text-stone-500 dark:text-stone-400 mb-4 text-xs">Send one LP's K-1 to a test address to review before full send.</p>
+      <div class="space-y-3 mb-4">
+        <div>
+          <label class="block text-xs text-stone-500 dark:text-stone-400 mb-1">Test send to (email)</label>
+          <input type="email" id="testSendEmail" placeholder="e.g. finance@example.com" class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-200 placeholder-stone-400">
+        </div>
+        <div>
+          <label class="block text-xs text-stone-500 dark:text-stone-400 mb-1">PDF folder</label>
+          <select id="testSendPdfFolder" class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-200">
+            <option value="">Select folder...</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-stone-500 dark:text-stone-400 mb-1">LP CSV</label>
+          <select id="testSendCsv" class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-200">
+            <option value="">Select CSV...</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-stone-500 dark:text-stone-400 mb-1">Email template (.txt)</label>
+          <select id="testSendTxt" class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-200">
+            <option value="">Select template...</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-stone-500 dark:text-stone-400 mb-1">LP to send (pick by identifier or row #)</label>
+          <select id="testSendLp" class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-200">
+            <option value="">Select LP...</option>
+          </select>
+        </div>
+      </div>
+      <button id="btnTestSend" class="px-4 py-2 bg-stone-800 dark:bg-stone-600 text-white rounded hover:bg-stone-700 dark:hover:bg-stone-500 disabled:opacity-50 disabled:cursor-not-allowed">
+        Send test email
+      </button>
+      <div id="testSendOutput" class="hidden mt-2 p-3 bg-stone-100 dark:bg-stone-700 rounded text-stone-700 dark:text-stone-300 whitespace-pre-wrap break-words text-xs"></div>
+    </section>
+
+    <!-- Full send -->
+    <section class="mb-12 p-6 border border-stone-200 dark:border-stone-700 rounded-lg bg-white dark:bg-stone-800">
+      <h2 class="text-sm font-medium text-stone-700 dark:text-stone-300 mb-4 uppercase tracking-wider">4. Full send</h2>
+      <p class="text-stone-500 dark:text-stone-400 mb-4 text-xs">Send all K-1s via Gmail. Requires credentials.json and token.json.</p>
+      <div class="space-y-3 mb-4">
+        <div>
+          <label class="block text-xs text-stone-500 dark:text-stone-400 mb-1">PDF folder</label>
+          <select id="sendPdfFolder" class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-200">
+            <option value="">Select folder...</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-stone-500 dark:text-stone-400 mb-1">LP CSV</label>
+          <select id="sendCsv" class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-200">
+            <option value="">Select CSV...</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-stone-500 dark:text-stone-400 mb-1">Email template (.txt)</label>
+          <select id="sendTxt" class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-200">
+            <option value="">Select template...</option>
+          </select>
+        </div>
+      </div>
+      <button id="btnSend" class="px-4 py-2 bg-rose-700 dark:bg-rose-600 text-white rounded hover:bg-rose-600 dark:hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed">
+        Send all
+      </button>
+      <div id="sendOutput" class="hidden mt-2 p-3 bg-stone-100 dark:bg-stone-700 rounded text-stone-700 dark:text-stone-300 whitespace-pre-wrap break-words text-xs"></div>
+    </section>
+
+    <footer class="text-stone-400 dark:text-stone-500 text-xs">
+      <p>Confidential files in <code class="bg-stone-100 dark:bg-stone-700 px-1 rounded">ignore/</code> are gitignored. Never commit credentials.json, token.json, or .env.</p>
+    </footer>
+  </div>
+
+  <script>
+    const API = '/api';
+
+    async function fetchJson(url) {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(r.statusText);
+      return r.json();
+    }
+
+    async function postJson(url, body) {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || r.statusText);
+      return data;
+    }
+
+    function showOutput(elId, text, isError = false) {
+      const el = document.getElementById(elId);
+      el.textContent = text;
+      el.className = 'mt-2 p-3 rounded whitespace-pre-wrap break-words text-xs ' + (isError ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300' : 'bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-300');
+      el.classList.remove('hidden');
+    }
+
+    function setLoading(btn, loading) {
+      btn.disabled = loading;
+      btn.textContent = loading ? 'Running…' : btn.dataset.label || 'Run';
+    }
+
+    // Load dropdowns
+    async function loadOptions() {
+      const [folders, csvFiles, txtFiles] = await Promise.all([
+        fetchJson(API + '/folders'),
+        fetchJson(API + '/csv-files'),
+        fetchJson(API + '/txt-files')
+      ]);
+
+      const folderSelects = ['prepareFolder', 'matchPdfFolder', 'testSendPdfFolder', 'sendPdfFolder'];
+      folderSelects.forEach(id => {
+        const sel = document.getElementById(id);
+        const current = sel.value;
+        sel.innerHTML = '<option value="">Select folder...</option>' + folders.map(f => `<option value="${f}">${f}</option>`).join('');
+        if (current) sel.value = current;
+      });
+
+      const csvSelects = ['matchCsv', 'testSendCsv', 'sendCsv'];
+      csvSelects.forEach(id => {
+        const sel = document.getElementById(id);
+        const current = sel.value;
+        sel.innerHTML = '<option value="">Select CSV...</option>' + csvFiles.map(f => `<option value="${f}">${f}</option>`).join('');
+        if (current) sel.value = current;
+      });
+
+      const txtSelects = ['testSendTxt', 'sendTxt'];
+      txtSelects.forEach(id => {
+        const sel = document.getElementById(id);
+        const current = sel.value;
+        sel.innerHTML = '<option value="">Select template...</option>' + txtFiles.map(f => `<option value="${f}">${f}</option>`).join('');
+        if (current) sel.value = current;
+      });
+    }
+
+    // Load LPs when CSV changes
+    document.getElementById('testSendCsv').addEventListener('change', async function() {
+      const csv = this.value;
+      const sel = document.getElementById('testSendLp');
+      sel.innerHTML = '<option value="">Select LP...</option>';
+      if (!csv) return;
+      try {
+        const lps = await fetchJson(API + '/lps?csv=' + encodeURIComponent(csv));
+        lps.forEach(lp => {
+          sel.innerHTML += `<option value="${lp.index}">${lp.index}. ${lp.identifier}</option>`;
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    });
+
+    // Prepare
+    document.getElementById('btnPrepare').dataset.label = 'Run';
+    document.getElementById('btnPrepare').addEventListener('click', async function() {
+      const folder = document.getElementById('prepareFolder').value;
+      const mode = document.querySelector('input[name="prepareMode"]:checked').value;
+      if (!folder) { alert('Select a folder'); return; }
+      setLoading(this, true);
+      try {
+        const r = await postJson(API + '/prepare', { inputPath: folder, mode });
+        showOutput('prepareOutput', r.output);
+        loadOptions();
+      } catch (e) {
+        showOutput('prepareOutput', e.message, true);
+      } finally {
+        setLoading(this, false);
+      }
+    });
+
+    // Test match
+    document.getElementById('btnTestMatch').dataset.label = 'Run test match';
+    document.getElementById('btnTestMatch').addEventListener('click', async function() {
+      const pdfFolder = document.getElementById('matchPdfFolder').value;
+      const lpCsv = document.getElementById('matchCsv').value;
+      if (!pdfFolder) { alert('Select a PDF folder'); return; }
+      setLoading(this, true);
+      try {
+        const r = await postJson(API + '/test-match', { pdfFolder, lpCsv: lpCsv || undefined });
+        showOutput('matchOutput', r.output);
+      } catch (e) {
+        showOutput('matchOutput', e.message, true);
+      } finally {
+        setLoading(this, false);
+      }
+    });
+
+    // Test send
+    document.getElementById('btnTestSend').dataset.label = 'Send test email';
+    document.getElementById('btnTestSend').addEventListener('click', async function() {
+      const pdfFolder = document.getElementById('testSendPdfFolder').value;
+      const lpCsv = document.getElementById('testSendCsv').value;
+      const emailTemplate = document.getElementById('testSendTxt').value;
+      const lpPick = document.getElementById('testSendLp').value || '1';
+      const testSendEmail = document.getElementById('testSendEmail').value.trim();
+      if (!pdfFolder) { alert('Select a PDF folder'); return; }
+      setLoading(this, true);
+      try {
+        const r = await postJson(API + '/test-send', { pdfFolder, lpCsv, emailTemplate, lpPick, testSendEmail });
+        showOutput('testSendOutput', r.output);
+      } catch (e) {
+        showOutput('testSendOutput', e.message, true);
+      } finally {
+        setLoading(this, false);
+      }
+    });
+
+    // Full send
+    document.getElementById('btnSend').dataset.label = 'Send all';
+    document.getElementById('btnSend').addEventListener('click', async function() {
+      if (!confirm('Send K-1s to all LPs? This cannot be undone.')) return;
+      const pdfFolder = document.getElementById('sendPdfFolder').value;
+      const lpCsv = document.getElementById('sendCsv').value;
+      const emailTemplate = document.getElementById('sendTxt').value;
+      if (!pdfFolder) { alert('Select a PDF folder'); return; }
+      setLoading(this, true);
+      try {
+        const r = await postJson(API + '/send', { pdfFolder, lpCsv, emailTemplate });
+        showOutput('sendOutput', r.output);
+      } catch (e) {
+        showOutput('sendOutput', e.message, true);
+      } finally {
+        setLoading(this, false);
+      }
+    });
+
+    async function loadTestSendEmail() {
+      try {
+        const { email } = await fetchJson(API + '/test-send-email');
+        document.getElementById('testSendEmail').value = email || '';
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    loadOptions();
+    loadTestSendEmail();
+  </script>
+</body>
+</html>
