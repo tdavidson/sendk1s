@@ -37,12 +37,19 @@ async function testK1Matching() {
         const { lpData } = await loadCSVData();
         console.log(`Found ${lpData.length} LPs to process`);
 
-        const results = [];
-        const files = await fs.readdir(PDF_FOLDER);
+        const allFiles = await fs.readdir(PDF_FOLDER);
+        const pdfFiles = allFiles.filter(f => path.extname(f).toLowerCase() === '.pdf');
 
+        const normalizeForMatch = (s) => (s || '').replace(/\s+/g, ' ').trim();
+
+        const results = [];
         for (const lp of lpData) {
-            const pdfFile = files.find(file => file.includes(lp.identifier));
-            
+            const key = normalizeForMatch(lp.identifier);
+            const matches = pdfFiles.filter(file => key && file.includes(key));
+            const pdfFile = matches.length > 0 ? matches[0] : null;
+            if (matches.length > 1) {
+                console.warn(`Warning: Multiple PDFs match identifier "${lp.identifier}": ${matches.join(', ')}. Using first match.`);
+            }
             results.push({
                 identifier: lp.identifier,
                 email: lp.email,
@@ -75,18 +82,31 @@ async function testK1Matching() {
 }
 
 // Add usage information
-if (process.argv[2] === '--help' || process.argv[2] === '-h') {
+function printUsage() {
     console.log(`
-Usage: node test_k1_matching.js [pdf_folder_path] [lp_csv_path]
+Usage: node test_k1s.js <pdf_folder_path> [lp_csv_path]
 
 Required:
-- PDF folder path containing K1 files
-- LP CSV file with columns: identifier,email
+- pdf_folder_path: folder containing K-1 PDF files (e.g. the _protected folder)
+- lp_csv_path (optional): path to LP CSV; defaults to lp_list.csv in project root
+
+LP CSV must have columns: identifier,email
+Output: matching_results.csv is written next to the LP CSV.
 
 Example:
-node test_k1_matching.js docs/K1_folder lp_list.csv
+node test_k1s.js ignore/2025_k1_ocrolus_protected 2025_k1_spv1/spv1_lps.csv
     `);
+}
+
+if (process.argv[2] === '--help' || process.argv[2] === '-h') {
+    printUsage();
     process.exit(0);
+}
+
+if (!process.argv[2]) {
+    console.error('Error: PDF folder path is required.\n');
+    printUsage();
+    process.exit(1);
 }
 
 testK1Matching().catch(console.error);

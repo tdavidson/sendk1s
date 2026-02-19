@@ -1,16 +1,29 @@
 {
-  "name": "app",
+  "name": "k1distribution",
   "version": "1.0.0",
-  "description": "",
+  "description": "K-1 distribution and email scripts for Laconia Capital Group (encrypt PDFs, test matching, send via Gmail or SendGrid).",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "encrypt": "node k1script.js",
+    "redact": "node redact_k1.js",
+    "test-match": "node test_k1s.js",
+    "send-gmail": "node send_k1s_gmail.js",
+    "send-gmail-test": "node send_k1s_gmail_test.js",
+    "send-sendgrid": "node send_k1s_sendgrid.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "overrides": {
+    "minimatch": "^10.2.1",
+    "glob": "^11.0.0",
+    "tar": "^7.5.8",
+    "rimraf": "^5.0.11"
+  },
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
+    "@pdf-lib/fontkit": "^1.1.1",
     "@sendgrid/mail": "^8.1.4",
     "csv-parse": "^5.6.0",
     "csv-stringify": "^6.5.2",
@@ -18,9 +31,9 @@
     "fs-extra": "^11.3.0",
     "google-auth-library": "^9.15.1",
     "googleapis": "^146.0.0",
-    "node-pdftk": "^2.1.3",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^3.11.174",
     "ssh2-sftp-client": "^11.0.0"
   }
 }

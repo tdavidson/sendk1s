@@ -42,21 +42,24 @@ async function authorize() {
             return oAuth2Client;
         }
 
-        // Get new token
+        // Get new token. prompt: 'consent' forces the consent screen so Google returns a
+        // refresh_token (needed to get new access tokens without re-prompting every time).
         const authUrl = oAuth2Client.generateAuthUrl({
             access_type: 'offline',
             scope: SCOPES,
+            prompt: 'consent',
         });
-        console.log('Authorize this app by visiting this url:', authUrl);
-        
+        console.log('\nAuthorize this app by visiting this url:\n', authUrl);
+        console.log('\nAfter you sign in, the browser may show "This site can\'t be reached" or a blank page at localhost. That\'s normal.');
+        console.log('Copy the ENTIRE code from the browser\'s address bar (the part after "code=" and before "&scope").\n');
         const code = await new Promise((resolve) => {
             const readline = require('readline').createInterface({
                 input: process.stdin,
                 output: process.stdout,
             });
-            readline.question('Enter the code from that page here: ', (code) => {
+            readline.question('Paste the code here and press Enter: ', (code) => {
                 readline.close();
-                resolve(code);
+                resolve(code?.trim() || '');
             });
         });
 
@@ -72,6 +75,14 @@ async function authorize() {
         console.error('Error during authorization:', error);
         throw error;
     }
+}
+
+function escapeHtml(text) {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 }
 
 async function sendEmail(auth, recipients, pdfPath, pdfFilename) {
@@ -93,9 +104,7 @@ async function sendEmail(auth, recipients, pdfPath, pdfFilename) {
             '--boundary',
             'Content-Type: text/html; charset="UTF-8"',
             '',
-            `<div style="font-family: Arial, sans-serif;">
-                ${EMAIL_TEMPLATE.split('\n\n').map(p => `<p>${p}</p>`).join('')}
-            </div>`,
+            `<div style="font-family: Arial, sans-serif; white-space: pre-wrap;">${escapeHtml(EMAIL_TEMPLATE)}</div>`,
             '',
             '--boundary',
             'Content-Type: application/pdf',
@@ -163,19 +172,25 @@ async function main() {
         const { lpData } = await loadCSVData();
         console.log(`Found ${lpData.length} LPs to process`);
 
+        const allFiles = await fs.readdir(PDF_FOLDER);
+        const pdfFiles = allFiles.filter(f => path.extname(f).toLowerCase() === '.pdf');
+        const normalizeForMatch = (s) => (s || '').replace(/\s+/g, ' ').trim();
+
         let successCount = 0;
         let failureCount = 0;
 
         for (const lp of lpData) {
-            // Look for PDF files that contain the LP's identifier
-            const files = await fs.readdir(PDF_FOLDER);
-            const pdfFile = files.find(file => file.includes(lp.identifier));
-            
+            const key = normalizeForMatch(lp.identifier);
+            const matches = pdfFiles.filter(file => key && file.includes(key));
+            const pdfFile = matches.length > 0 ? matches[0] : null;
+            if (matches.length > 1) {
+                console.warn(`Warning: Multiple PDFs match identifier "${lp.identifier}": ${matches.join(', ')}. Using first match.`);
+            }
             if (pdfFile) {
                 const pdfPath = path.join(PDF_FOLDER, pdfFile);
                 console.log(`Sending K-1 to ${lp.email}`);
                 const success = await sendEmail(auth, lp.email, pdfPath, pdfFile);
-                
+
                 if (success) {
                     successCount++;
                 } else {
@@ -208,9 +223,18 @@ Required files:
 - Email template file (defaults to email_template.txt)
 
 Example:
-node send_k1s_gmail.js docs/K1_folder lp_list.csv templates/k1_email.txt
+node send_k1s_gmail.js ignore/2025_k1_ocrolus_protected 2025_k1_spv1/spv1_lps.csv 2025_k1_spv1/spv2_email.txt
     `);
     process.exit(0);
 }
 
-main().catch(console.error);
+main().catch(err => {
+    const isInvalidGrant = err.response?.data?.error === 'invalid_grant' || (err.message && err.message.includes('invalid_grant'));
+    if (isInvalidGrant) {
+        console.error('\nGmail authorization failed (invalid_grant). The saved token is expired or was revoked.');
+        console.error('Fix: Delete token.json and run the script again. You will be prompted to re-authorize in the browser.\n');
+    } else {
+        console.error(err);
+    }
+    process.exit(1);
+});

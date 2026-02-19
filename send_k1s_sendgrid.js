@@ -7,15 +7,22 @@ const sgMail = require('@sendgrid/mail');
 // Configuration
 const PDF_FOLDER = process.argv[2];
 const LP_CSV_PATH = process.argv[3] || path.join(__dirname, 'lp_list.csv');
+const EMAIL_TEMPLATE_PATH = process.argv[4] || path.join(__dirname, 'email_template.txt');
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const FROM_EMAIL = 'finance@laconiacapitalgroup.com';
 const FROM_NAME = 'Laconia Capital Group';
 
-// Load and parse email template
-const emailFile = fs.readFileSync(path.join(__dirname, 'email_template.txt'), 'utf8');
-const [subjectLine, ...bodyLines] = emailFile.split('\n');
-const EMAIL_SUBJECT = subjectLine.replace('SUBJECT:', '').trim();
-const EMAIL_TEMPLATE = bodyLines.join('\n').trim();
+// Load and parse email template (validated in main)
+let EMAIL_SUBJECT, EMAIL_TEMPLATE;
+function loadEmailTemplate() {
+    if (!fs.existsSync(EMAIL_TEMPLATE_PATH)) {
+        throw new Error(`Email template not found at ${EMAIL_TEMPLATE_PATH}`);
+    }
+    const emailFile = fs.readFileSync(EMAIL_TEMPLATE_PATH, 'utf8');
+    const [subjectLine, ...bodyLines] = emailFile.split('\n');
+    EMAIL_SUBJECT = subjectLine.replace('SUBJECT:', '').trim();
+    EMAIL_TEMPLATE = bodyLines.join('\n').trim();
+}
 
 // Initialize SendGrid
 sgMail.setApiKey(SENDGRID_API_KEY);
@@ -86,23 +93,30 @@ async function main() {
             console.error(`LP CSV file not found: ${LP_CSV_PATH}`);
             process.exit(1);
         }
+        loadEmailTemplate();
 
         const { lpData } = await loadCSVData();
         console.log(`Found ${lpData.length} LPs to process`);
+
+        const allFiles = await fs.readdir(PDF_FOLDER);
+        const pdfFiles = allFiles.filter(f => path.extname(f).toLowerCase() === '.pdf');
+        const normalizeForMatch = (s) => (s || '').replace(/\s+/g, ' ').trim();
 
         let successCount = 0;
         let failureCount = 0;
 
         for (const lp of lpData) {
-            // Look for PDF files that contain the LP's identifier
-            const files = await fs.readdir(PDF_FOLDER);
-            const pdfFile = files.find(file => file.includes(lp.identifier));
-            
+            const key = normalizeForMatch(lp.identifier);
+            const matches = pdfFiles.filter(file => key && file.includes(key));
+            const pdfFile = matches.length > 0 ? matches[0] : null;
+            if (matches.length > 1) {
+                console.warn(`Warning: Multiple PDFs match identifier "${lp.identifier}": ${matches.join(', ')}. Using first match.`);
+            }
             if (pdfFile) {
                 const pdfPath = path.join(PDF_FOLDER, pdfFile);
                 console.log(`Sending K-1 to ${lp.email}`);
                 const success = await sendEmail(lp.email, pdfPath, pdfFile);
-                
+
                 if (success) {
                     successCount++;
                 } else {
@@ -126,18 +140,21 @@ async function main() {
 // Add usage information
 if (process.argv[2] === '--help' || process.argv[2] === '-h') {
     console.log(`
-Usage: node send_k1s.js [pdf_folder_path] [lp_csv_path]
+Usage: node send_k1s_sendgrid.js [pdf_folder_path] [lp_csv_path] [email_template_path]
 
 Required:
-- SENDGRID_API_KEY environment variable
-- LP CSV file with columns: identifier,email
-- PDFs in pdf_folder_path
-- email_template.txt in script directory
+- SENDGRID_API_KEY environment variable (e.g. in .env in project root)
+- pdf_folder_path: folder containing K-1 PDFs (e.g. the _protected folder)
+- lp_csv_path (optional): defaults to lp_list.csv in project root
+- email_template_path (optional): defaults to email_template.txt in project root
+
+Example:
+node send_k1s_sendgrid.js ignore/2025_k1_ocrolus_protected 2025_k1_spv1/spv1_lps.csv 2025_k1_spv1/spv2_email.txt
 
 Setup steps:
 1. Sign up for SendGrid
 2. Create API key with "Mail Send" permissions
-3. Set SENDGRID_API_KEY environment variable
+3. Set SENDGRID_API_KEY (e.g. in .env)
 4. Verify your sender email in SendGrid
     `);
     process.exit(0);
