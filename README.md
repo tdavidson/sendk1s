@@ -1,6 +1,8 @@
 # Prepare and Send K1s
 
-This was created by Taylor Davidson of [Hemrock](https://www.hemrock.com). Distributing K1s to investors can be a pain, so let's make it a bit easier. This script can be run through command line or a web interface running locally on your computer - no data is shared outside of your computer - and it take take a folder of PDF K1s, redact EIN/TIN/SSNs if needed, encrypt and password-protect if needed (creating passwords from the last 4 digits of the K1 recipient's SSN/TIN/EIN and their zip code), and use a template email and a CSV of recipient names and email addresses (including support for multiple contacts per LP), send them from your own Gmail (or SendGrid, if desired). 
+This was created by Taylor Davidson of [Hemrock](https://www.hemrock.com). Distributing K1s to investors can be a pain, so let's make it a bit easier. This script can be run through command line or a web interface running locally on your computer - no data is shared outside of your computer - and it can take a folder of PDF K1s, redact EIN/TIN/SSNs if needed, encrypt and password-protect if needed (creating passwords from the last 4 digits of the K1 recipient's SSN/TIN/EIN and their zip code), and use a template email and a CSV of recipient names and email addresses (including support for multiple contacts per LP), send them from your own Gmail (or SendGrid, if desired). 
+
+![Web UI overview](overview.jpeg)
 
 Questions, ask anytime.
 
@@ -64,8 +66,6 @@ npm run ui
 ```
 
 Open http://localhost:3000 (or the next available port if 3000 is in use).
-
-![Web UI overview](overview.jpeg)
 
 **How it works:**
 
@@ -183,8 +183,29 @@ node send_k1s_gmail.js <pdf_folder> [lp_csv] [email_template]
 1. Google Cloud Console: create OAuth credentials (type "Web application"), download as `credentials.json`
 2. Add the redirect URI to your OAuth client: `http://localhost:3000/auth/gmail/callback` (and `:3001`, `:3002` if the UI uses those ports — the UI shows the exact URI to add)
 3. Place `credentials.json` in the project root (gitignored)
-4. **Web UI:** Start the UI (`npm run ui`), click "Authorize Gmail", sign in with Google — you'll be redirected back automatically. No copy-paste.
-5. **CLI:** First run: authorize in browser, paste code in terminal; creates `token.json` in project root
+4. Complete authorization (see flow below)
+
+#### Gmail authorization flow
+
+Both the terminal and web UI create the same `token.json` file. Once authorized, either interface can send emails.
+
+**Terminal flow** (for `send_k1s_gmail.js` or `send_k1s_gmail_test.js`):
+
+1. Run the script. If `token.json` doesn't exist, it prints a URL.
+2. Open the URL in your browser and sign in with Google.
+3. Google may show "This site can't be reached" or a blank page at localhost — that's expected. Copy the **entire code** from the address bar (the part after `code=` and before `&scope`).
+4. Paste the code into the terminal when prompted and press Enter.
+5. The script saves `token.json` and proceeds. Future runs use the stored token; no re-authorization unless you delete it or it expires.
+
+**Web UI flow** (recommended):
+
+1. Start the UI (`npm run ui`) and open http://localhost:3000.
+2. If `token.json` doesn't exist, an "Authorize Gmail" section appears.
+3. Click "Authorize Gmail". You're sent to Google to sign in.
+4. After approving, Google redirects you back to the app. The server captures the code from the URL, exchanges it for tokens, saves `token.json`, and shows a success message.
+5. No copy-paste. If the redirect fails (e.g. redirect URI not configured), use "Redirect not working? Use paste flow" to paste the code manually.
+
+**Credentials type:** The redirect flow requires "Web application" credentials with the callback URI added in Google Cloud Console. If you have "Desktop app" credentials instead, use the paste flow in the web UI or authorize via the terminal.
 
 ### Test send (Gmail)
 
