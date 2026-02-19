@@ -47,9 +47,39 @@ Optional:
 
 Keep confidential documents in the `ignore/` folder (it is gitignored):
 
-- Put K-1 PDFs in a subfolder (e.g. `ignore/2025_fund_name/`)
+- Put K-1 PDFs in a subfolder (e.g. `ignore/2025_fund_name/original/`)
 - Place `credentials.json` and `token.json` in the project root for Gmail (they are gitignored)
-- Password CSVs are written to `ignore/` automatically
+- Password CSVs are written next to the fund folder (e.g. `ignore/2025_fund/k1_passwords_original.csv`)
+
+### 4. Web UI
+
+A minimal web interface lets you run prepare, test-match, and send operations from the browser.
+
+**Start the UI:**
+
+```bash
+npm run ui
+```
+
+Open http://localhost:3000 (or the next available port if 3000 is in use).
+
+![Web UI overview](overview.jpeg)
+
+**How it works:**
+
+- **Prepare** — Choose redact only, encrypt only, or both. Select the folder containing your original PDFs (e.g. `ignore/2025_fund/original`). The UI runs the same scripts as the CLI.
+- **Test matching** — Select the `_protected` or `_redacted_protected` PDF folder and LP CSV to verify each LP has exactly one matching PDF.
+- **Test send** — Send one LP's K-1 to a test address. Set the test email in the UI (or it uses `TEST_SEND_EMAIL` from `.env`). Pick which LP by row number.
+- **Full send** — Send all K-1s via Gmail. Requires confirmation before sending.
+
+Dropdowns list folders and files from `ignore/` and `example/`. The UI calls the underlying Node scripts; no PDFs or passwords are sent to the browser.
+
+**Security:**
+
+- The UI runs on **localhost only** — it does not listen on external interfaces.
+- All processing happens on your machine. The browser only sends form data (paths, options) to the local server.
+- PDFs, passwords, and credentials stay on disk. The server spawns the same CLI scripts you would run manually.
+- Use the UI only on a trusted machine. Do not expose the server to a network.
 
 ---
 
@@ -97,7 +127,7 @@ Encrypts K-1 PDFs with a password derived from SSN/TIN last 4 digits and ZIP cod
 **Usage:** `node k1script.js [input_folder]`
 
 - **input_folder:** Defaults to `ignore/original` if omitted
-- **Output:** `<input_folder>_protected/` and `ignore/k1_passwords_<folder>.csv`
+- **Output:** `<input_folder>_protected/` and `k1_passwords_<folder>.csv` (saved in the parent of the input folder)
 
 **Encryption tool:** PDFtk (default) or qpdf. Set `USE_QPDF=1` in `.env` to use qpdf (preserves fonts after redaction). Install with `brew install qpdf`.
 
@@ -168,18 +198,6 @@ node send_k1s_sendgrid.js <pdf_folder> [lp_csv] [email_template]
 ```
 
 Requires `SENDGRID_API_KEY` in `.env`. Authenticate your domain in SendGrid to avoid spoof warnings.
-
----
-
-## Web UI
-
-A minimal web interface runs on localhost for running prepare, test-match, and send operations:
-
-```bash
-npm run ui
-```
-
-Open http://localhost:3000. Select folders, CSV files, and email templates from dropdowns. Test send uses `TEST_SEND_EMAIL` from `.env`.
 
 ---
 
