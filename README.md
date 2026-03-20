@@ -1,12 +1,39 @@
-# Prepare and Send K1s
+# Secure K1 Delivery
 
-This was created by Taylor Davidson of [Hemrock](https://www.hemrock.com). Distributing K1s to investors can be a pain, so let's make it a bit easier. This script can be run through command line or a web interface running locally on your computer - no data is shared outside of your computer - and it can take a folder of PDF K1s, redact EIN/TIN/SSNs if needed, encrypt and password-protect if needed (creating passwords from the last 4 digits of the K1 recipient's SSN/TIN/EIN and their zip code), and use a template email and a CSV of recipient names and email addresses (including support for multiple contacts per LP), send them from your own Gmail (or SendGrid, if desired). 
+Auto-redact SSNs, encrypt PDFs, and send K1s securely from Gmail without exposing investor data. Created by Taylor Davidson of [Hemrock](https://www.hemrock.com).
+
+## What it does
+
+Takes a folder of K1 PDFs and processes them for secure distribution. Automatically redacts SSNs/TINs, encrypts each PDF with unique passwords, and sends them directly through your Gmail. Everything runs locally on your machine — no data uploads to external services. Supports bulk processing and includes a web interface for easy operation.
 
 ![Web UI overview](overview.jpeg)
 
-Questions, ask anytime.
+## Why
 
-## Setup
+Every unencrypted K1 sent via email is a potential data breach. One forwarded email exposes investor SSNs to your entire network.
+
+## How it works
+
+• **Local processing** — Web UI runs on localhost, all PDFs stay on your machine
+• **Smart redaction** — Automatically finds and redacts the receiving party's SSN/TIN while preserving other data
+• **Unique encryption** — Each PDF gets password-protected using last 4 digits of SSN plus ZIP code
+• **Gmail integration** — OAuth setup sends encrypted K1s directly through your Gmail account
+• **Bulk operations** — Process hundreds of K1s in minutes with CSV-based recipient matching
+
+## Get started
+
+```bash
+npm install
+brew install pdftk-java
+cp .env.example .env
+npm run ui
+```
+
+Open http://localhost:3000 and follow the web interface to authorize Gmail and process your K1s.
+
+Created by Taylor Davidson of [Hemrock](https://www.hemrock.com). Questions, ask anytime.
+
+## Detailed Setup
 
 ### 1. Install dependencies
 
