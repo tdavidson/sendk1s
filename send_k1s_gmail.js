@@ -36,8 +36,9 @@ try {
 async function authorize() {
     try {
         const content = await fs.readFile(CREDENTIALS_PATH);
-        const { client_secret, client_id, redirect_uris } = JSON.parse(content).installed;
-        const oAuth2Client = new OAuth2Client(client_id, client_secret, redirect_uris[0]);
+        const parsed = JSON.parse(content);
+        const { client_secret, client_id, redirect_uris } = parsed.installed || parsed.web;
+        const oAuth2Client = new OAuth2Client(client_id, client_secret, redirect_uris?.[0]);
 
         // Check if we have previously stored a token
         if (await fs.pathExists(TOKEN_PATH)) {

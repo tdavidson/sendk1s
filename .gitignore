@@ -13,7 +13,9 @@ not_tracked_by_github/
 
 # Google API credentials
 credentials.json
+laconiacredentials.json
 token.json
+laconiatoken.json
 
 # Environment variables
 .env
