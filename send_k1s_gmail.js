@@ -184,13 +184,15 @@ async function main() {
         const allFiles = await fs.readdir(PDF_FOLDER);
         const pdfFiles = allFiles.filter(f => path.extname(f).toLowerCase() === '.pdf');
         const normalizeForMatch = (s) => (s || '').replace(/\s+/g, ' ').trim();
+        // Case-insensitive, so "LAST, FIRST" matches "Last, First".
+        const fileMatchesKey = (file, key) => !!key && file.toLowerCase().includes(key.toLowerCase());
 
         let successCount = 0;
         let failureCount = 0;
 
         for (const lp of lpData) {
             const key = normalizeForMatch(lp.identifier);
-            const matches = pdfFiles.filter(file => key && file.includes(key));
+            const matches = pdfFiles.filter(file => fileMatchesKey(file, key));
             const pdfFile = matches.length > 0 ? matches[0] : null;
             if (matches.length > 1) {
                 console.warn(`Warning: Multiple PDFs match identifier "${lp.identifier}": ${matches.join(', ')}. Using first match.`);
@@ -241,7 +243,7 @@ main().catch(err => {
     const isInvalidGrant = err.response?.data?.error === 'invalid_grant' || (err.message && err.message.includes('invalid_grant'));
     if (isInvalidGrant) {
         console.error('\nGmail authorization failed (invalid_grant). The saved token is expired or was revoked.');
-        console.error('Fix: Delete token.json and run the script again. You will be prompted to re-authorize in the browser.\n');
+        console.error(`Fix: Delete ${TOKEN_PATH} and run the script again. You will be prompted to re-authorize in the browser.\n`);
     } else {
         console.error(err);
     }

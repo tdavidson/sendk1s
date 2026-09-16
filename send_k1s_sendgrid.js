@@ -105,13 +105,15 @@ async function main() {
         const allFiles = await fs.readdir(PDF_FOLDER);
         const pdfFiles = allFiles.filter(f => path.extname(f).toLowerCase() === '.pdf');
         const normalizeForMatch = (s) => (s || '').replace(/\s+/g, ' ').trim();
+        // Case-insensitive, so "LAST, FIRST" matches "Last, First".
+        const fileMatchesKey = (file, key) => !!key && file.toLowerCase().includes(key.toLowerCase());
 
         let successCount = 0;
         let failureCount = 0;
 
         for (const lp of lpData) {
             const key = normalizeForMatch(lp.identifier);
-            const matches = pdfFiles.filter(file => key && file.includes(key));
+            const matches = pdfFiles.filter(file => fileMatchesKey(file, key));
             const pdfFile = matches.length > 0 ? matches[0] : null;
             if (matches.length > 1) {
                 console.warn(`Warning: Multiple PDFs match identifier "${lp.identifier}": ${matches.join(', ')}. Using first match.`);

@@ -42,10 +42,13 @@ async function testK1Matching() {
 
         const normalizeForMatch = (s) => (s || '').replace(/\s+/g, ' ').trim();
 
+        // Case-insensitive, so "LAST, FIRST" matches "Last, First".
+        const fileMatchesKey = (file, key) => !!key && file.toLowerCase().includes(key.toLowerCase());
+
         const results = [];
         for (const lp of lpData) {
             const key = normalizeForMatch(lp.identifier);
-            const matches = pdfFiles.filter(file => key && file.includes(key));
+            const matches = pdfFiles.filter(file => fileMatchesKey(file, key));
             const pdfFile = matches.length > 0 ? matches[0] : null;
             if (matches.length > 1) {
                 console.warn(`Warning: Multiple PDFs match identifier "${lp.identifier}": ${matches.join(', ')}. Using first match.`);
