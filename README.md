@@ -59,10 +59,9 @@ Edit `.env` and set at minimum:
 
 | Variable | Required for | Description |
 |----------|---------------|-------------|
-| `FROM_EMAIL` | Gmail, SendGrid | Sender email address |
-| `FROM_NAME` | Gmail, SendGrid | Sender display name |
+| `FROM_EMAIL` | Gmail | Sender email address |
+| `FROM_NAME` | Gmail | Sender display name |
 | `TEST_SEND_EMAIL` | Test send | Address to receive test emails |
-| `SENDGRID_API_KEY` | SendGrid | SendGrid API key (if using SendGrid) |
 
 Optional:
 
@@ -117,7 +116,7 @@ Dropdowns list folders and files from `ignore/` and `example/`. The UI calls the
 
 1. **Prepare** K-1 PDFs: redact (optional) and encrypt
 2. **Test matching** to verify PDF filenames match your LP CSV before sending
-3. **Send** K-1s via Gmail or SendGrid
+3. **Send** K-1s via Gmail
 
 ---
 
@@ -176,7 +175,7 @@ Output: `matching_results.csv` next to the LP CSV.
 
 ---
 
-## Sending K-1s (Gmail and SendGrid)
+## Sending K-1s (Gmail)
 
 You need: email template, K-1 PDFs, and LP CSV.
 
@@ -244,17 +243,9 @@ node send_k1s_gmail_test.js <pdf_folder> [lp_csv] [email_template] [lp_pick]
 
 `lp_pick`: number (1-based) or part of identifier.
 
-### SendGrid
-
-```bash
-node send_k1s_sendgrid.js <pdf_folder> [lp_csv] [email_template]
-```
-
-Requires `SENDGRID_API_KEY` in `.env`. Authenticate your domain in SendGrid to avoid spoof warnings.
-
 ### Extensions
 
-This can be edited to use Resend or other email providers.
+Gmail is the only supported email provider. Resend or Postmark could be added through a future integration.
 
 ---
 
@@ -270,7 +261,6 @@ This can be edited to use Resend or other email providers.
 | `npm run test-match -- <pdf_folder> [lp_csv]` | Test PDF/LP matching |
 | `npm run send-gmail -- ...` | Send via Gmail |
 | `npm run send-gmail-test -- ...` | Test send via Gmail |
-| `npm run send-sendgrid -- ...` | Send via SendGrid |
 | `npm run ui` | Start web interface (localhost:3000) |
 
 Pass arguments after `--`.
