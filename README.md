@@ -14,11 +14,11 @@ Every unencrypted K1 sent via email is a potential data breach. One forwarded em
 
 ## How it works
 
-• **Local processing** — Web UI runs on localhost, all PDFs stay on your machine
-• **Smart redaction** — Automatically finds and redacts the receiving party's SSN/TIN while preserving other data
-• **Unique encryption** — Each PDF gets password-protected using last 4 digits of SSN plus ZIP code
-• **Gmail integration** — OAuth setup sends encrypted K1s directly through your Gmail account
-• **Bulk operations** — Process hundreds of K1s in minutes with CSV-based recipient matching
+- **Local processing** — Web UI runs on localhost, all PDFs stay on your machine
+- **Smart redaction** — Automatically finds and redacts the receiving party's SSN/TIN while preserving other data
+- **Unique encryption** — Each PDF gets password-protected using last 4 digits of SSN plus ZIP code
+- **Gmail integration** — OAuth setup sends encrypted K1s directly through your Gmail account
+- **Bulk operations** — Process hundreds of K1s in minutes with CSV-based recipient matching
 
 ## Get started
 
